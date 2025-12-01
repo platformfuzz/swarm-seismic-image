@@ -4,7 +4,7 @@ Docker image for running **USGS Swarm** for real-time seismic waveform analysis.
 
 ## Overview
 
-This is a containerized application that runs USGS Swarm, a real-time seismic waveform display and analysis tool. Swarm is a GUI application that requires X11 display forwarding.
+This is a containerized application that runs USGS Swarm, a real-time seismic waveform display and analysis tool. Swarm is a GUI application that requires a graphical display and Java 8 or greater.
 
 Swarm can connect to multiple data sources including:
 
@@ -24,55 +24,25 @@ Swarm processes and visualizes seismic data, and can export events in QuakeML fo
 docker build -t swarm-seismic-image:latest .
 ```
 
-### Run (Default - Uses Xvfb Virtual Display)
+### Run Swarm
 
-The container includes Xvfb and runs Swarm with a virtual display by default. This works out of the box:
-
-```bash
-docker run --rm -it swarm-seismic-image:latest
-```
-
-### Run with Host X11 Forwarding (Optional)
-
-**For Windows + SSH into VM:**
-
-1. **Install X11 server on Windows:**
-   * [VcXsrv](https://sourceforge.net/projects/vcxsrv/) (free, recommended)
-   * Start VcXsrv: "Multiple windows", "Start no client", allow public networks
-
-2. **SSH with X11 forwarding:**
-
-   ```bash
-   ssh -X username@vm-host
-   # Or trusted forwarding:
-   ssh -Y username@vm-host
-   ```
-
-3. **Run container (DISPLAY is automatically forwarded via SSH):**
-
-   ```bash
-   docker run --rm -it \
-     -e DISPLAY=$DISPLAY \
-     -v /tmp/.X11-unix:/tmp/.X11-unix \
-     swarm-seismic-image:latest
-   ```
-
-   **Note:** If `DISPLAY` is set (from X11 forwarding), the container uses it. Otherwise, it uses Xvfb automatically.
-
-**On macOS:** Install XQuartz and use:
+Swarm requires X11 display. Ensure you have an X11 server running, then:
 
 ```bash
 docker run --rm -it \
-  -e DISPLAY=host.docker.internal:0 \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
   swarm-seismic-image:latest
 ```
 
-### Example with Custom Arguments
+**Note:** If `DISPLAY` is empty, ensure X11 is running and set it explicitly:
 
 ```bash
+export DISPLAY=:0
 docker run --rm -it \
-  -v $(pwd)/config:/root/.swarm \
-  swarm-seismic-image:latest ./swarm.sh --nogui
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  swarm-seismic-image:latest
 ```
 
 ## Configuration
@@ -82,7 +52,6 @@ docker run --rm -it \
 The Dockerfile supports configurable build arguments:
 
 * `JAVA_BASE_IMAGE` (default: `eclipse-temurin:8-jre`) - Java base image
-  * Alternative: `eclipse-temurin:8-jre-alpine` for smaller image size
 * `SWARM_VERSION` (default: `3.5.0`) - Swarm version to install
 
 **Example with custom build args:**
@@ -102,6 +71,8 @@ Swarm configuration is stored in `/root/.swarm`. Mount a volume to persist confi
 
 ```bash
 docker run --rm -it \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v $(pwd)/swarm-config:/root/.swarm \
   swarm-seismic-image:latest
 ```
@@ -130,8 +101,7 @@ Port: 18000
 ### Prerequisites
 
 * Docker
-* X11 server (for GUI on Linux)
-* XQuartz (for GUI on macOS)
+* X11 server (for GUI)
 
 ### Development Workflow
 
@@ -162,35 +132,7 @@ Port: 18000
 
 ## Production Deployment
 
-### Basic Deployment
-
-Swarm is designed as a GUI application for interactive use. For production monitoring, consider:
-
-1. Running on a system with X11 display
-2. Using remote X11 forwarding (SSH X11 forwarding)
-3. Running in a VM with desktop environment
-
-```bash
-docker run -d \
-  --name swarm-seismic \
-  -e DISPLAY=:0 \
-  -v /path/to/config:/root/.swarm \
-  swarm-seismic-image:latest
-```
-
-### Export Directory
-
-Swarm can export events in QuakeML format. Mount a volume for exports:
-
-```bash
-docker run -d \
-  --name swarm-seismic \
-  -e DISPLAY=:0 \
-  -v /path/to/exports:/root/swarm-exports \
-  swarm-seismic-image:latest
-```
-
-Configure Swarm to export to `/root/swarm-exports` for integration with upstream services.
+Swarm is designed as a GUI application for interactive use. For production monitoring, run on a system with X11 display or use remote X11 forwarding.
 
 ## CI/CD
 
@@ -206,11 +148,7 @@ Images are available at: `ghcr.io/platformfuzz/swarm-seismic-image`
 ## Requirements
 
 * **Java 8** - Swarm requires Java 8 (provided by eclipse-temurin:8-jre)
-* **X11/Xvfb** - Swarm is a GUI application; container includes Xvfb for virtual display
-* **X11 Server (for GUI)** - If you want to see the GUI:
-  * **Windows:** VcXsrv, X410, or Xming
-  * **macOS:** XQuartz
-  * **Linux:** Usually pre-installed
+* **X11 Display** - Swarm is a GUI application requiring X11
 * **Data Sources** - Access to seismic data sources (SeedLink, FDSN, etc.)
 
 ## Project Structure

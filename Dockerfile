@@ -7,11 +7,10 @@ ARG SWARM_VERSION=3.5.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV SWARM_VERSION=${SWARM_VERSION}
-# DISPLAY will be set by entrypoint or X11 forwarding
 
-# Install required packages (including Xvfb for virtual display)
+# Install required packages (including X11 libraries for GUI)
 RUN apt-get update && \
-    apt-get install -y wget unzip xvfb libxtst6 libxi6 && \
+    apt-get install -y wget unzip libxext6 libxi6 libxtst6 libxrender1 libxrandr2 && \
     rm -rf /var/lib/apt/lists/*
 
 # Download and unpack Swarm
@@ -27,10 +26,10 @@ RUN chmod +x ./swarm.sh
 # Copy Swarm.config to avoid Swarm 3.5.0 config creation/parsing bug
 COPY Swarm.config /opt/swarm-${SWARM_VERSION}/Swarm.config
 
-# Create entrypoint script to start Xvfb and run Swarm
+# Copy entrypoint to handle DISPLAY
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Start Xvfb virtual display and run Swarm
+# Run Swarm (requires X11 display - use X11 forwarding)
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["./swarm.sh"]
