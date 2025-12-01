@@ -28,10 +28,39 @@ docker build -t swarm-seismic-image:latest .
 
 Swarm requires X11 display. Ensure you have an X11 server running, then:
 
+**Option 1: Using xhost (simpler, less secure)**
+
+First, allow local connections to X11:
+
+```bash
+xhost +local:docker
+```
+
+Then run the container:
+
 ```bash
 docker run --rm -it \
   -e DISPLAY=$DISPLAY \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
+  swarm-seismic-image:latest
+```
+
+**Note:** After use, you can revert xhost for better security:
+
+```bash
+xhost -local:docker
+```
+
+**Option 2: Using XAUTHORITY (more secure, recommended)**
+
+Mount your X11 authority file:
+
+```bash
+docker run --rm -it \
+  -e DISPLAY=$DISPLAY \
+  -e XAUTHORITY=/tmp/.X11-unix/Xauthority \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  -v $XAUTHORITY:/tmp/.X11-unix/Xauthority:ro \
   swarm-seismic-image:latest
 ```
 
@@ -70,6 +99,9 @@ docker build \
 Swarm configuration is stored in `/root/.swarm`. Mount a volume to persist configuration:
 
 ```bash
+# First, allow X11 access (if using xhost method)
+xhost +local:docker
+
 docker run --rm -it \
   -e DISPLAY=$DISPLAY \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
@@ -114,6 +146,9 @@ Port: 18000
 2. **Run with X11:**
 
    ```bash
+   # First, allow X11 access (if using xhost method)
+   xhost +local:docker
+
    docker run --rm -it \
      -e DISPLAY=$DISPLAY \
      -v /tmp/.X11-unix:/tmp/.X11-unix \
